@@ -6,3 +6,9 @@ ngrok start --all # 8765 8000 同時に起動
 
 "wss://xxxx-xxx-xxx-xxx.ngrok-free.app"; // ← ngrok 8765 URL に更新
 https://7bea-110-0-83-247.ngrok-free.app -> http://localhost:8000 を実行
+
+
+
+
+python3 -m http.server 8765
+http://localhost:8765
