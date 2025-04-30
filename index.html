@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,18 +5,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CyberNetCall</title>
-  <link rel="manifest" href="{% static 'cnc/manifest.json' %}">
+  <link rel="manifest" href="manifest.json">
   <!-- アイコンパスを修正 (manifest.json に合わせる) -->
-  <link rel="icon" href="{% static 'cnc/icons/icon-192x192.png' %}">
+  <link rel="icon" href="icon-192x192.png">
   <!-- CSSファイルを読み込む -->
-  <link rel="stylesheet" href="{% static 'cnc/style.css' %}">
+  <link rel="stylesheet" href="style.css">
   <!-- 外部ライブラリ (deferで非同期読み込み) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js" integrity="sha512-xss3FFnHvjLzqzJSGe6F9Pa7NWUyGVQirGq0/Hj+D3FN6n19r/M6+5Qk+Kmf+kQeBi9h7LuYwZSQubHwm9iYrw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js" defer></script>
   <script src="https://unpkg.com/idb@7/build/umd.js" defer></script>
   <script src="https://unpkg.com/html5-qrcode" defer></script>
   <!-- アプリケーション本体のJavaScript -->
-  <script src="{% static 'cnc/app.js' %}" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
   <h1>CyberNetCall</h1>
@@ -78,4 +77,3 @@
 
 </body>
 </html>
-

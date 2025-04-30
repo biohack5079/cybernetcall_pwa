@@ -1229,7 +1229,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // 6. Register Service Worker (with scope for PWA)
   if ('serviceWorker' in navigator) {
     // Register with scope '/' to control the whole app
-    navigator.serviceWorker.register('/static/cnc/service-worker.js', { scope: '/' })
+    navigator.serviceWorker.register('service-worker.js', { scope: '/' })
       .then(registration => {
         console.log('Service Worker registered successfully with scope:', registration.scope);
         // Optional: Check for updates
@@ -1263,4 +1263,3 @@ document.addEventListener('DOMContentLoaded', () => {
   currentAppState = AppState.INITIAL; // Set initial state explicitly
 
 }); // End of DOMContentLoaded listener
-
