@@ -1,15 +1,29 @@
 {
   "name": "CyberNetCall",
   "short_name": "CNC",
-  "start_url": "./index.html",
+  "description": "Peer-to-peer communication via QR and WebRTC.",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "theme_color": "#007bff",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

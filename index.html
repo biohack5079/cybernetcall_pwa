@@ -1,133 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CybernetCall</title>
+  <title>CyberNetCall</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon.png">
+  <!-- アイコンパスを修正 (manifest.json に合わせる) -->
+  <link rel="icon" href="icon-192x192.png">
+  <!-- CSSファイルを読み込む -->
+  <link rel="stylesheet" href="style.css">
+  <!-- 外部ライブラリ (deferで非同期読み込み) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js" integrity="sha512-xss3FFnHvjLzqzJSGe6F9Pa7NWUyGVQirGq0/Hj+D3FN6n19r/M6+5Qk+Kmf+kQeBi9h7LuYwZSQubHwm9iYrw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js" defer></script>
   <script src="https://unpkg.com/idb@7/build/umd.js" defer></script>
   <script src="https://unpkg.com/html5-qrcode" defer></script>
+  <!-- アプリケーション本体のJavaScript -->
   <script src="app.js" defer></script>
-  <style>
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-family: Arial, sans-serif;
-      min-height: 100vh;
-      margin: 0;
-      padding: 1rem;
-    }
-    .section {
-      max-width: 400px;
-      width: 100%;
-      margin: 1rem auto;
-      border: 1px solid #ccc;
-      padding: 1rem;
-      border-radius: 8px;
-    }
-    .call-controls {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-      justify-content: center;
-    }
-    #qr-reader {
-      width: 300px;
-      margin: 20px auto;
-    }
-    #qr-reader__dashboard_section_csr {
-      display: none;
-    }
-    video {
-      width: 100%;
-      max-width: 300px;
-      margin: 10px 0;
-    }
-  </style>
 </head>
 <body>
-  <h1>CybernetCall</h1>
-  <p>Scan the QR code and add it to your home screen.</p>
+  <h1>CyberNetCall</h1>
+  <!-- 接続状態表示用 -->
+  <div id="connectionStatus" style="display: none; font-weight: bold; margin-bottom: 1rem;"></div>
+  <p>Scan the QR code or let your friend scan yours to connect.</p>
 
+  <!-- QRコード表示用 -->
   <canvas id="qrcode"></canvas>
-  <div id="friendList"></div>
-  
+
+  <!-- QRコードリーダー用 -->
+  <!-- ★ スキャン開始ボタンを追加 -->
+  <button id="startScanButton" style="margin-top: 1rem;">Scan QR Code</button>
+  <!-- ★ 初期状態は非表示に -->
+  <div id="qr-reader" style="width: 300px; margin: 20px auto; display: none;"></div>
+  <div id="qr-reader-results" style="margin-top: 10px; font-style: italic;"></div>
+
+  <!-- Direct Mail セクション -->
   <section class="section">
     <h2>Direct Mail</h2>
-    <input type="text" id="messageInput" placeholder="Type a message..." disabled>
-    <button id="sendMessage" disabled>Send</button>
-    <div id="messageArea"></div>
+    <label for="messageInput" class="visually-hidden">Direct Message</label>
+    <input type="text" id="messageInput" placeholder="Type a message..." aria-label="Direct Message">
+    <button id="sendMessage">Send</button>
+    <div id="messageArea" class="message-area"></div>
   </section>
-  
+
+  <!-- Post Friends セクション -->
   <section class="section">
-    <h2>Post Friends</h2>
-    <input type="text" id="postInput" placeholder="Write your post...">
+    <h2>Group Chat</h2>
+    <label for="postInput" class="visually-hidden">Post Friends</label>
+    <input type="text" id="postInput" placeholder="Write your post..." aria-label="Post Content">
     <button id="sendPost">Post</button>
-    <div id="postArea"></div>
+    <div id="postArea" class="post-area"></div>
   </section>
 
-<section class="section">
-    <h2>Group Meeting</h2>
-    <video id="localVideo" autoplay muted playsinline></video>
-    <video id="remoteVideo" autoplay playsinline></video>
-    <div class="call-controls">
-      <button id="callButton" disabled>📞</button>
-      <button id="videoButton" disabled>🎥</button>
+  <!-- Group Meeting セクション (1対1ビデオ通話) -->
+  <section class="section">
+    <h2>Video Meeting</h2>
+    <div class="video-container">
+      <video id="localVideo" autoplay muted playsinline></video>
+      <video id="remoteVideo" autoplay playsinline></video>
     </div>
-    <input type="file" id="fileInput" disabled>
-    <button id="sendFile" disabled>Send File</button>
+    <div class="call-controls">
+      <button id="callButton" aria-label="Start/End Call">📞</button>
+      <button id="videoButton" aria-label="Toggle Video">🎥</button> <!-- style="display: none;" は削除済み -->
+    </div>
+    <!-- ファイル送信機能 -->
+    <div style="margin-top: 1rem;">
+        <label for="fileInput">Share File:</label>
+        <input type="file" id="fileInput">
+        <button id="sendFile">Send File</button>
+        <span id="file-transfer-status" style="margin-left: 10px; font-style: italic;"></span> <!-- Status display -->
+    </div>
   </section>
 
-  <div id="qr-reader"></div>
-  <div id="qr-reader-results"></div>
+  <!-- friendList は現在未使用のためコメントアウトまたは削除 -->
+  <!-- <div id="friendList"></div> -->
 
-  <script>
-    const updateQrCode = () => {
-      const size = Math.min(window.innerWidth * 0.8, 500);
-      const qr = new QRious({
-        element: document.getElementById('qrcode'),
-        value: window.ngrokUrl || location.href,
-        size
-      });
-    };
-
-    const setupEvents = () => {
-      window.addEventListener('resize', updateQrCode);
-    };
-
-    const startQrScanner = () => {
-      const reader = document.getElementById('qr-reader');
-      const results = document.getElementById('qr-reader-results');
-      if (reader) {
-        const qrScanner = new Html5Qrcode(reader);
-        qrScanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            results.innerHTML = `<div>${decodedText}</div>`;
-            window.connectToFriend?.(decodedText);
-            qrScanner.stop();
-          },
-          (error) => console.warn(error)
-        ).catch(err => console.error("QR scanner error:", err));
-      }
-    };
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => console.log("Service Worker registered", reg))
-        .catch(err => console.error("Service Worker failed", err));
-    }
-
-    updateQrCode();
-    setupEvents();
-    startQrScanner();
-  </script>
 </body>
 </html>
 
