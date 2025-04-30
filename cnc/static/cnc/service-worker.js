@@ -1,4 +1,4 @@
-// /home/my/d/cybernetcall/cncservice-worker.js
+// /home/my/d/cybernetcall/cnc/static/cnc/service-worker.js
 // Service worker with pre-caching for local assets and external libraries
 
 // Define a unique name for the cache, including a version number
@@ -8,13 +8,13 @@ const CACHE_NAME = 'cybernetcall-cache-v5'; // Keep or increment version as need
 const urlsToCache = [
   // Core application shell
   '/', // The main HTML page
-  'manifest.json',
-  'app.js',
-  'style.css',
+  '/static/cnc/manifest.json',
+  '/static/cnc/app.js',
+  '/static/cnc/style.css',
   // Icons used by manifest and potentially HTML
-  'icons/icon-192x192.png',
-  'icons/icon-512x512.png',
-  'icons/icon-maskable-512x512.png', // Also cache maskable icon
+  '/static/cnc/icons/icon-192x192.png',
+  '/static/cnc/icons/icon-512x512.png',
+  '/static/cnc/icons/icon-maskable-512x512.png', // Also cache maskable icon
   // External libraries loaded from CDNs in index.html
   'https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js',
