@@ -1,5 +1,5 @@
 // /home/my/d/cybernetcall/cnc/static/cnc/app.js
-// Final version with English UI messages, DOMPurify, File Transfer, Post Deletion, modified Call Buttons, and Manual QR Scan Start
+// Final version with English UI messages, DOMPurify, File Transfer, Post Deletion, modified Call Buttons, Manual QR Scan Start, and Brotli Compression
 
 // ==================================================
 // Global Variables & State Management
@@ -25,6 +25,10 @@ let messageInputElement, sendMessageButton, postInputElement, sendPostButton; //
 let fileInputElement, sendFileButton, fileTransferStatusElement; // File transfer UI elements
 let callButton, videoButton; // Video call UI elements
 let startScanButton; // QR Scan Button
+
+// Brotli Wasm library instance (initialized in DOMContentLoaded)
+let brotli;
+const BROTLI_QR_PREFIX = 'cnc_br:'; // Prefix to identify Brotli compressed QR data
 
 // File Transfer Globals
 const CHUNK_SIZE = 16384; // 16KB chunk size
@@ -151,7 +155,7 @@ function displayPost(post, isNew = true) {
   // Create content span
   const contentSpan = document.createElement('span');
   // Create HTML string including sender (shortened) and content
-  // ★ XSS Protection: Sanitize HTML before setting innerHTML
+  // XSS Protection: Sanitize HTML before setting innerHTML
   const unsafeHTML = `<strong>${post.sender ? post.sender.substring(0, 6) : 'Unknown'}:</strong> ${post.content}`;
   contentSpan.innerHTML = DOMPurify.sanitize(unsafeHTML); // Sanitize using DOMPurify
 
@@ -274,8 +278,8 @@ async function createPeerConnection() {
         case 'connected':
           // Connection established
           if (currentAppState !== AppState.CONNECTED) {
-              currentAppState = AppState.CONNECTED;
-              updateStatus('Connected!', 'green'); // ★ English
+              currentAppState = AppState.CONNECTED; // English
+              updateStatus('Connected!', 'green'); // English
               if(qrElement) qrElement.style.display = 'none'; // Hide QR code
               if(qrReaderElement) qrReaderElement.style.display = 'none'; // Hide QR reader
               setInteractionUiEnabled(true); // Enable interaction UI
@@ -287,8 +291,8 @@ async function createPeerConnection() {
           // If we were connected or connecting, reset to initial state
           if (currentAppState === AppState.CONNECTED || currentAppState === AppState.CONNECTING) {
               currentAppState = AppState.INITIAL;
-              const reason = peerConnection.connectionState === 'failed' ? ' (Connection failed)' : ''; // ★ English
-              updateStatus(`Connection closed (${peerConnection.connectionState}${reason})`, 'red'); // ★ English
+              const reason = peerConnection.connectionState === 'failed' ? ' (Connection failed)' : ''; // English
+              updateStatus(`Connection closed (${peerConnection.connectionState}${reason})`, 'red'); // English
               setInteractionUiEnabled(false); // Disable interaction UI
               resetConnection(); // Reset connection state and UI
           }
@@ -296,20 +300,20 @@ async function createPeerConnection() {
         case 'connecting': // Peers are exchanging information
           if (currentAppState !== AppState.CONNECTING) {
               currentAppState = AppState.CONNECTING;
-              updateStatus('Connecting...', 'orange'); // ★ English
+              updateStatus('Connecting...', 'orange'); // English
           }
           break;
         default: // Other states like 'new', 'checking'
             if (currentAppState !== AppState.CONNECTING && currentAppState !== AppState.CONNECTED) {
-                 updateStatus(`Connection state: ${peerConnection.connectionState}`, 'orange'); // ★ English
+                 updateStatus(`Connection state: ${peerConnection.connectionState}`, 'orange'); // English
             }
       }
     };
     console.log("PeerConnection created.");
     return true; // Success
-  } catch (error) {
+  } catch (error) { // English
     console.error("Error creating PeerConnection:", error);
-    updateStatus(`Connection setup error: ${error.message}`, 'red'); // ★ English
+    updateStatus(`Connection setup error: ${error.message}`, 'red'); // English
     currentAppState = AppState.ERROR;
     return false; // Failure
   }
@@ -324,7 +328,7 @@ function setupDataChannelEvents() {
         // When data channel opens, connection is fully established
         if (currentAppState !== AppState.CONNECTED) {
              currentAppState = AppState.CONNECTED;
-             updateStatus('Connected! (DataChannel Ready)', 'green'); // ★ English
+             updateStatus('Connected! (DataChannel Ready)', 'green'); // English
              if(qrElement) qrElement.style.display = 'none';
              if(qrReaderElement) qrReaderElement.style.display = 'none';
              setInteractionUiEnabled(true); // Enable interaction UI
@@ -335,7 +339,7 @@ function setupDataChannelEvents() {
         // If data channel closes while connected, treat as disconnection
         if (currentAppState === AppState.CONNECTED) {
             currentAppState = AppState.INITIAL;
-            updateStatus('Data channel closed', 'red'); // ★ English
+            updateStatus('Data channel closed', 'red'); // English
             setInteractionUiEnabled(false); // Disable interaction UI
             resetConnection();
         }
@@ -343,7 +347,7 @@ function setupDataChannelEvents() {
     dataChannel.onerror = (error) => {
         console.error("Data channel error:", error);
         currentAppState = AppState.ERROR;
-        updateStatus(`Data channel error: ${error}`, 'red'); // ★ English
+        updateStatus(`Data channel error: ${error}`, 'red'); // English
         setInteractionUiEnabled(false); // Disable interaction UI on error
         resetConnection();
     };
@@ -369,7 +373,7 @@ async function createOfferAndSetLocal() {
     return peerConnection.localDescription; // Return the Offer SDP
   } catch (error) {
     console.error("Error creating DataChannel, Offer or setting local description:", error);
-    updateStatus(`Offer creation error: ${error.message}`, 'red'); // ★ English
+    updateStatus(`Offer creation error: ${error.message}`, 'red'); // English
     currentAppState = AppState.ERROR;
     return null;
   }
@@ -392,7 +396,7 @@ async function handleOfferAndCreateAnswer(offerSdp) {
     return peerConnection.localDescription; // Return the Answer SDP
   } catch (error) {
     console.error("Error handling offer or creating/setting answer:", error);
-    updateStatus(`Offer handling / Answer creation error: ${error.message}`, 'red'); // ★ English
+    updateStatus(`Offer handling / Answer creation error: ${error.message}`, 'red'); // English
     currentAppState = AppState.ERROR;
     return null;
   }
@@ -412,7 +416,7 @@ async function handleAnswer(answerSdp) {
     return true; // Success
   } catch (error) {
     console.error("Error setting remote description with answer:", error);
-    updateStatus(`Answer handling error: ${error.message}`, 'red'); // ★ English
+    updateStatus(`Answer handling error: ${error.message}`, 'red'); // English
     currentAppState = AppState.ERROR;
     return false; // Failure
   }
@@ -477,8 +481,8 @@ function resetConnection() {
     updateQrCodeWithValue(JSON.stringify({ type: 'initial', deviceId: myDeviceId })); // Show initial QR
     if(qrElement) qrElement.style.display = 'block';
     if(qrReaderElement) qrReaderElement.style.display = 'none'; // Hide QR reader
-    if(startScanButton) startScanButton.disabled = false; // Enable scan button
-    updateStatus('Waiting for connection', 'black'); // ★ English
+    if(startScanButton) startScanButton.disabled = false; // Enable scan button // English
+    updateStatus('Waiting for connection', 'black'); // English
     setInteractionUiEnabled(false); // Disable interaction UI
     // Clear message areas
     if(messageAreaElement) messageAreaElement.innerHTML = '';
@@ -656,13 +660,13 @@ function handleSendMessage() {
             if(input) input.value = ''; // Clear input field
         } catch (error) {
             console.error("Error sending message:", error);
-            alert("Failed to send message."); // ★ English
+            alert("Failed to send message."); // English
         }
     } else if (!dataChannel || dataChannel.readyState !== 'open') {
         // Provide feedback if not connected
         const stateMsg = dataChannel ? ` (State: ${dataChannel.readyState})` : '';
         console.warn(`Cannot send message. DataChannel not open${stateMsg}. Current app state: ${currentAppState}`);
-        alert(`Not connected${stateMsg}. Please scan the QR code again.`); // ★ English
+        alert(`Not connected${stateMsg}. Please scan the QR code again.`); // English
         if (currentAppState !== AppState.CONNECTED) {
             resetConnection(); // Reset if not properly connected
         }
@@ -675,7 +679,7 @@ function displayDirectMessage(message, isOwnMessage = false) {
     const div = document.createElement('div');
     div.classList.add('message', isOwnMessage ? 'own-message' : 'peer-message');
     // Create HTML string including sender ('You' or peer ID) and content
-    // ★ XSS Protection: Sanitize HTML before setting innerHTML
+    // XSS Protection: Sanitize HTML before setting innerHTML
     const unsafeHTML = `<strong>${isOwnMessage ? 'You' : (message.sender ? message.sender.substring(0, 6) : 'Peer')}:</strong> ${message.content}`;
     div.innerHTML = DOMPurify.sanitize(unsafeHTML); // Sanitize using DOMPurify
 
@@ -705,13 +709,13 @@ async function handleSendPost() {
           console.log("Post sent via DataChannel:", post.id);
       } catch (error) {
           console.error("Error sending post:", error);
-          alert("Failed to send post."); // ★ English
+          alert("Failed to send post."); // English
       }
     } else {
         console.log("Post saved locally, but not sent (no open DataChannel).");
         // Notify user if not connected when posting
-        if (!dataChannel || dataChannel.readyState !== 'open') {
-             alert("Not connected. Post saved locally only."); // ★ English
+        if (!dataChannel || dataChannel.readyState !== 'open') { // English
+             alert("Not connected. Post saved locally only."); // English
         }
     }
     if(input) input.value = ''; // Clear input field
@@ -722,7 +726,7 @@ async function handleSendPost() {
 // Handle file sending
 function handleSendFile() {
     if (!fileInputElement || !fileInputElement.files || fileInputElement.files.length === 0) {
-        alert("Please select a file."); // ★ English
+        alert("Please select a file."); // English
         return;
     }
     if (!dataChannel || dataChannel.readyState !== 'open') {
@@ -750,7 +754,7 @@ function handleSendFile() {
         dataChannel.send(JSON.stringify(metadata));
     } catch (error) {
         console.error("Error sending file metadata:", error);
-        alert("Failed to send file metadata."); // ★ English
+        alert("Failed to send file metadata."); // English
         if (fileTransferStatusElement) fileTransferStatusElement.textContent = 'Metadata send failed';
         sendFileButton.disabled = false; // Re-enable button
         return;
@@ -764,7 +768,7 @@ function handleSendFile() {
 
     fileReader.addEventListener('error', error => {
         console.error('FileReader error:', error);
-        alert('File read error occurred.'); // ★ English
+        alert('File read error occurred.'); // English
         if (fileTransferStatusElement) fileTransferStatusElement.textContent = 'File read error';
         sendFileButton.disabled = false; // Re-enable button
     });
@@ -797,7 +801,7 @@ function handleSendFile() {
             fileReader.readAsArrayBuffer(slice);
         } catch (readError) {
              console.error('Error reading file slice:', readError);
-             alert('Failed to read file slice.'); // ★ English
+             alert('Failed to read file slice.'); // English
              if (fileTransferStatusElement) fileTransferStatusElement.textContent = 'File slice error';
              sendFileButton.disabled = false; // Re-enable button
         }
@@ -835,7 +839,7 @@ function handleSendFile() {
              }
          } catch (error) {
              console.error(`Error sending chunk ${currentChunkIndex}:`, error);
-             alert(`Failed to send chunk ${currentChunkIndex}.`); // ★ English
+             alert(`Failed to send chunk ${currentChunkIndex}.`); // English
              if (fileTransferStatusElement) fileTransferStatusElement.textContent = 'Chunk send error';
              sendFileButton.disabled = false; // Re-enable button
              // Consider aborting the transfer here
@@ -878,7 +882,7 @@ async function toggleVideoCall() {
             if(callButton) callButton.textContent = 'End Call';
         } catch (error) {
             console.error("Error starting video call:", error);
-            alert(`Media access error: ${error.message}`); // ★ English
+            alert(`Media access error: ${error.message}`); // English
             localStream = null; // Reset stream if failed
         }
     } else { // End call
@@ -922,27 +926,56 @@ function toggleLocalVideo() {
 // ==================================================
 
 // Update the QR code displayed on the canvas
-function updateQrCodeWithValue(value) {
+async function updateQrCodeWithValue(value) {
     if (!qrElement) {
         console.warn("QR element not available for update.");
         return;
     }
+
+    let qrValue = value;
+    let originalSize = value.length;
+    let compressedSize = 0;
+
+    // Try to compress the value using Brotli via Wasm
+    if (brotli && typeof value === 'string' && value.startsWith('{')) { // Only compress JSON strings
+        try {
+            console.log("Attempting Brotli compression...");
+            const inputBuffer = new TextEncoder().encode(value);
+            const compressedData = await brotli.compress(inputBuffer); // Use await for async compression
+            compressedSize = compressedData.length;
+            console.log(`Brotli Compression: ${originalSize} bytes -> ${compressedSize} bytes (${((1 - compressedSize / originalSize) * 100).toFixed(1)}% reduction)`);
+
+            // Encode compressed data to Base64 and add prefix
+            const base64String = btoa(String.fromCharCode(...compressedData));
+            qrValue = BROTLI_QR_PREFIX + base64String;
+            console.log("Using Brotli compressed data for QR code.");
+
+        } catch (compressionError) {
+            console.error("Brotli compression failed, using original data:", compressionError);
+            qrValue = value; // Fallback to original value
+            compressedSize = originalSize; // Indicate no compression
+        }
+    } else {
+        console.log("Skipping compression (not JSON or Brotli not ready).");
+        compressedSize = originalSize; // Indicate no compression
+    }
+
     // Adjust size based on window width, slightly smaller
     const size = Math.min(window.innerWidth * 0.7, 250);
     // Check if QRious library is loaded
     if (typeof QRious !== 'undefined') {
         try {
             // Generate QR code with lower error correction level ('L') for simplicity
-            new QRious({ element: qrElement, value: value || '', size: size, level: 'L' });
-            console.log("QR Code updated (Level L):", value ? value.substring(0, 50) + '...' : ''); // Log truncated value
+            new QRious({ element: qrElement, value: qrValue || '', size: size, level: 'L' });
+            console.log(`QR Code updated (Level L, value size: ${qrValue.length}):`, qrValue ? qrValue.substring(0, 50) + '...' : ''); // Log truncated value
         } catch (e) {
              console.error("QRious error:", e);
-             qrElement.textContent = "QR Code Generation Error"; // ★ English
+             qrElement.textContent = "QR Code Generation Error"; // English
         }
     } else {
         console.error("QRious not loaded.");
         // Retry after a delay if library might still be loading
-        setTimeout(() => updateQrCodeWithValue(value), 500);
+        // setTimeout(() => updateQrCodeWithValue(value), 500); // Removed retry as Brotli init is now awaited
     }
 }
 
@@ -994,7 +1027,7 @@ function startQrScanner() {
             window.html5QrCodeScanner = new Html5Qrcode("qr-reader");
         } catch (e) {
             console.error("Error creating Html5Qrcode instance:", e);
-            updateStatus(`QR Reader initialization error: ${e.message}`, 'red'); // ★ English
+            updateStatus(`QR Reader initialization error: ${e.message}`, 'red'); // English
             if(qrReaderElement) qrReaderElement.style.display = 'none';
             if(startScanButton) startScanButton.disabled = false; // Re-enable button on error
             return; // Abort if instance creation fails
@@ -1003,11 +1036,12 @@ function startQrScanner() {
         // Callback for successful QR code scan
         const qrCodeSuccessCallback = (decodedText, decodedResult) => {
             console.log(`QR Scan success: ${decodedText ? decodedText.substring(0, 50) + '...' : ''}`);
-            if (qrResultsElement) qrResultsElement.textContent = `Scan successful`; // ★ English
+            if (qrResultsElement) qrResultsElement.textContent = `Scan successful`; // English
             setTimeout(() => { if(qrResultsElement) qrResultsElement.textContent = ''; }, 1500); // Show success briefly
 
             // Stop the scanner and then handle the data
             window.html5QrCodeScanner.stop().then(ignore => {
+                updateStatus('', 'black'); // Clear "Scanning..." status
                 console.log("QR Scanner stopped after success.");
                 if(qrReaderElement) qrReaderElement.style.display = 'none'; // Hide reader
                 // Button remains disabled until connection reset or failure
@@ -1015,6 +1049,7 @@ function startQrScanner() {
             }).catch(err => {
                  console.error("QR Scanner stop failed after success:", err);
                  if(qrReaderElement) qrReaderElement.style.display = 'none'; // Still hide reader
+                 updateStatus('Error stopping scanner.', 'red'); // English
                  // Button remains disabled
                  handleScannedQrData(decodedText); // Attempt to process data even if stop fails
             });
@@ -1023,17 +1058,19 @@ function startQrScanner() {
         const config = { fps: 10, qrbox: { width: 200, height: 200 } }; // Smaller QR box
 
         console.log("Starting QR scanner...");
+        updateStatus('Scanning QR Code...', 'blue'); // Show scanning status
         // Start scanning using the back camera
         window.html5QrCodeScanner.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
             .catch(err => {
                 console.error(`QR Scanner start error: ${err}`);
                 // Provide user-friendly error messages
                 if (err.name === 'NotAllowedError') {
-                    updateStatus('Camera access denied. Please check settings.', 'red'); // ★ English
+                    updateStatus('Camera access denied. Please check settings.', 'red'); // English
                 } else {
-                    updateStatus(`QR scanner error: ${err.message}`, 'red'); // ★ English
+                    updateStatus(`QR scanner error: ${err.message}`, 'red'); // English
                 }
                 if(qrReaderElement) qrReaderElement.style.display = 'none'; // Hide reader on error
+                updateStatus('', 'black'); // Clear scanning status on error
                 if(startScanButton) startScanButton.disabled = false; // Re-enable button on error
             });
     } else {
@@ -1048,14 +1085,39 @@ function startQrScanner() {
 // Process the data obtained from scanning a QR code (Core signaling logic)
 async function handleScannedQrData(decodedText) {
     console.log("Handling scanned data:", decodedText ? decodedText.substring(0, 50) + '...' : '');
+    let jsonDataString = decodedText;
+
+    // Check for Brotli prefix and decompress if present
+    if (decodedText && decodedText.startsWith(BROTLI_QR_PREFIX)) {
+        if (!brotli) {
+            console.error("Brotli library not initialized. Cannot decompress.");
+            updateStatus('Decompression library error.', 'red'); // English
+            resetConnection();
+            return;
+        }
+        try {
+            console.log("Detected Brotli compressed data. Decompressing...");
+            const base64Data = decodedText.substring(BROTLI_QR_PREFIX.length);
+            const compressedBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+            const decompressedBytes = await brotli.decompress(compressedBytes); // Use await for async decompression
+            jsonDataString = new TextDecoder().decode(decompressedBytes);
+            console.log("Brotli decompression successful.");
+        } catch (decompressionError) {
+            console.error("Brotli decompression failed:", decompressionError);
+            updateStatus('QR data decompression error.', 'red'); // English
+            resetConnection();
+            return;
+        }
+    }
+
     try {
-        const data = JSON.parse(decodedText); // Parse the JSON data from QR
+        const data = JSON.parse(jsonDataString); // Parse the (potentially decompressed) JSON data
         console.log("Parsed data:", data);
 
         // Ignore if already connected
         if (currentAppState === AppState.CONNECTED) {
             console.log("Already connected. Ignoring scanned data.");
-            updateStatus("Already connected.", "green"); // ★ English
+            updateStatus("Already connected.", "green"); // English
             if(startScanButton) startScanButton.disabled = true; // Keep disabled if connected
             return;
         }
@@ -1064,7 +1126,7 @@ async function handleScannedQrData(decodedText) {
             console.warn("Received non-answer QR while waiting for answer. Resetting...");
             resetConnection();
             if (data.type === 'initial') { // If the new QR is an initial one, try processing it after reset
-                setTimeout(() => handleScannedQrData(decodedText), 200);
+                setTimeout(() => handleScannedQrData(decodedText), 200); // Pass original text for potential re-processing
             }
             return;
         }
@@ -1079,7 +1141,7 @@ async function handleScannedQrData(decodedText) {
         // 1. Received peer's initial info (while in initial state) -> Create Offer
         if (data.type === 'initial' && currentAppState === AppState.INITIAL) {
             selectedFriendId = data.deviceId;
-            updateStatus(`Peer (${selectedFriendId.substring(0,6)}...) recognized. Creating Offer...`, 'orange'); // ★ English
+            updateStatus(`Peer (${selectedFriendId.substring(0,6)}...) recognized. Creating Offer...`, 'orange'); // English
             currentAppState = AppState.CONNECTING;
             if(startScanButton) startScanButton.disabled = true; // Disable scan button while connecting
             if (await createPeerConnection()) {
@@ -1087,14 +1149,14 @@ async function handleScannedQrData(decodedText) {
                 if (offerSdp) {
                     const offerData = { type: 'offer', sdp: offerSdp, senderId: myDeviceId };
                     updateQrCodeWithValue(JSON.stringify(offerData)); // Display Offer QR
-                    updateStatus('Offer created. Please have your friend scan this QR code.', 'blue'); // ★ English
+                    updateStatus('Offer created. Please have your friend scan this QR code.', 'blue'); // English
                 } else { currentAppState = AppState.ERROR; resetConnection(); }
             } else { currentAppState = AppState.ERROR; resetConnection(); }
         }
         // 2. Received peer's Offer (while in initial state) -> Create Answer
         else if (data.type === 'offer' && currentAppState === AppState.INITIAL) {
             selectedFriendId = data.senderId;
-            updateStatus(`Received Offer from peer (${selectedFriendId.substring(0,6)}...). Creating Answer...`, 'orange'); // ★ English
+            updateStatus(`Received Offer from peer (${selectedFriendId.substring(0,6)}...). Creating Answer...`, 'orange'); // English
             currentAppState = AppState.CONNECTING;
             if(startScanButton) startScanButton.disabled = true; // Disable scan button while connecting
             if (await createPeerConnection()) {
@@ -1102,13 +1164,13 @@ async function handleScannedQrData(decodedText) {
                 if (answerSdp) {
                     const answerData = { type: 'answer', sdp: answerSdp, senderId: myDeviceId };
                     updateQrCodeWithValue(JSON.stringify(answerData)); // Display Answer QR
-                    updateStatus('Answer created. Please have your friend scan this QR code.', 'blue'); // ★ English
+                    updateStatus('Answer created. Please have your friend scan this QR code.', 'blue'); // English
                 } else { currentAppState = AppState.ERROR; resetConnection(); }
             } else { currentAppState = AppState.ERROR; resetConnection(); }
         }
         // 3. Received peer's Answer (while connecting, after sending Offer) -> Finalize
         else if (data.type === 'answer' && currentAppState === AppState.CONNECTING && peerConnection?.localDescription?.type === 'offer') {
-             updateStatus('Received Answer from peer. Connecting...', 'orange'); // ★ English
+             updateStatus('Received Answer from peer. Connecting...', 'orange'); // English
              // Keep scan button disabled
              if(startScanButton) startScanButton.disabled = true;
              if (await handleAnswer(data.sdp)) { // Handle Answer
@@ -1119,15 +1181,15 @@ async function handleScannedQrData(decodedText) {
         // Handle unexpected data/state
         else {
             console.warn(`Unexpected data type ${data.type} in state ${currentAppState} with localDescription type ${peerConnection?.localDescription?.type}`);
-            updateStatus(`Unexpected data (${data.type}) or state (${currentAppState}). Resetting.`, 'orange'); // ★ English
+            updateStatus(`Unexpected data (${data.type}) or state (${currentAppState}). Resetting.`, 'orange'); // English
             resetConnection();
         }
     } catch (error) {
         console.error("Error handling scanned data:", error);
         if (error instanceof SyntaxError) {
-             updateStatus('Invalid QR code data format.', 'red'); // ★ English
+             updateStatus('Invalid QR code data format.', 'red'); // English
         } else {
-             updateStatus(`QR data processing error: ${error.message}`, 'red'); // ★ English
+             updateStatus(`QR data processing error: ${error.message}`, 'red'); // English
         }
         currentAppState = AppState.ERROR;
         resetConnection(); // Reset on error
@@ -1173,7 +1235,7 @@ function setupEventListeners() {
 // ==================================================
 // Initialization (on DOMContentLoaded)
 // ==================================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => { // Make listener async for Brotli init
   console.log("DOM fully loaded and parsed. Initializing app...");
 
   // 0. Get references to UI elements
@@ -1201,12 +1263,24 @@ document.addEventListener('DOMContentLoaded', () => {
   startScanButton = document.getElementById('startScanButton');
 
 
+  // Initialize Brotli Wasm library
+  try {
+      if (typeof wasm_brotli !== 'undefined' && typeof wasm_brotli.init === 'function') {
+          brotli = await wasm_brotli.init(); // Initialize and wait
+          console.log("Brotli Wasm library initialized successfully.");
+      } else { throw new Error("wasm_brotli library not loaded correctly."); }
+  } catch (brotliError) {
+      console.error("Failed to initialize Brotli Wasm library:", brotliError);
+      updateStatus("Compression library failed to load.", "red"); // English
+      brotli = null; // Ensure brotli is null if init fails
+  }
+
   // Check if idb library loaded and DB opened
   if (typeof idb === 'undefined') {
-      updateStatus("Database features disabled (idb library not loaded).", "orange"); // ★ English
+      updateStatus("Database features disabled (idb library not loaded).", "orange"); // English
   } else if (!dbPromise) {
       console.error("IndexedDB could not be opened.");
-      updateStatus("Database initialization failed.", "red"); // ★ English
+      updateStatus("Database initialization failed.", "red"); // English
   }
 
   // 1. Generate unique ID for this device
@@ -1221,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Display initial QR code and status
   updateQrCodeWithValue(JSON.stringify({ type: 'initial', deviceId: myDeviceId }));
-  updateStatus('Waiting for connection', 'black'); // ★ English
+  updateStatus('Waiting for connection', 'black'); // English
   setInteractionUiEnabled(false); // Disable interaction UI initially
 
   // 5. QR scanner is NOT started automatically anymore
@@ -1241,7 +1315,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (navigator.serviceWorker.controller) {
                   console.log('New content is available; please refresh.');
                   // Optionally notify user to refresh
-                  // updateStatus("New version available. Please refresh.", "blue"); // ★ English Example
+                  // updateStatus("New version available. Please refresh.", "blue"); // English Example
                 } else {
                   console.log('Content is cached for offline use.');
                 }
@@ -1252,11 +1326,11 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .catch(error => {
         console.error('Service Worker registration failed:', error);
-        updateStatus(`Service Worker registration error: ${error.message}`, 'red'); // ★ English
+        updateStatus(`Service Worker registration error: ${error.message}`, 'red'); // English
       });
   } else {
     console.log("Service Worker not supported.");
-    updateStatus('Offline features unavailable (Service Worker not supported)', 'orange'); // ★ English
+    updateStatus('Offline features unavailable (Service Worker not supported)', 'orange'); // English
   }
 
   console.log("App initialization complete.");
