@@ -5,10 +5,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CyberNetCall</title>
-  <link rel="manifest" href="manifest.json">
-  <!-- アイコンパスを修正 (manifest.json に合わせる) -->
+  <link rel="manifest" href="manifest.json"> <!-- Relative path to manifest in the same directory -->
+  <!-- Icon path (relative to this HTML file) -->
   <link rel="icon" href="icon-192x192.png">
-  <!-- CSSファイルを読み込む -->
+  <!-- CSS file (relative to this HTML file) -->
   <link rel="stylesheet" href="style.css">
   <!-- 外部ライブラリ (deferで非同期読み込み) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js" integrity="sha512-xss3FFnHvjLzqzJSGe6F9Pa7NWUyGVQirGq0/Hj+D3FN6n19r/M6+5Qk+Kmf+kQeBi9h7LuYwZSQubHwm9iYrw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -17,7 +17,7 @@
   <script src="https://unpkg.com/html5-qrcode" defer></script>
   <!-- Brotli Wasm library -->
   <script src="https://unpkg.com/wasm-brotli@0.1.0/wasm_brotli.js"></script>
-  <!-- アプリケーション本体のJavaScript -->
+  <!-- Main application JavaScript (relative to this HTML file) -->
   <script src="app.js" defer></script>
 </head>
 <body>

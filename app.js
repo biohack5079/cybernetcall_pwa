@@ -1302,8 +1302,8 @@ document.addEventListener('DOMContentLoaded', async () => { // Make listener asy
 
   // 6. Register Service Worker (with scope for PWA)
   if ('serviceWorker' in navigator) {
-    // Register with scope '/' to control the whole app
-    navigator.serviceWorker.register('service-worker.js', { scope: '/' })
+    // Register SW file in the same directory, scoped to this directory
+    navigator.serviceWorker.register('service-worker.js', { scope: '/public_html/cnc/' })
       .then(registration => {
         console.log('Service Worker registered successfully with scope:', registration.scope);
         // Optional: Check for updates
