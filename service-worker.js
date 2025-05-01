@@ -76,26 +76,34 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Network falling back to cache strategy
+  // Cache falling back to network strategy (Cache First)
   event.respondWith(
-    // 1. Try to fetch the resource from the network
-    fetch(event.request)
-      .then(networkResponse => {
-        // console.log('[Service Worker] Fetched from network:', event.request.url);
-        return networkResponse;
-      })
-      .catch(() => {
-        // 2. If network fetch fails (e.g., offline), try to get it from the cache
-        console.log('[Service Worker] Network failed, trying cache for:', event.request.url);
-        return caches.match(event.request)
-          .then(cachedResponse => {
-            if (cachedResponse) {
-              console.log('[Service Worker] Serving from cache:', event.request.url);
-            } else {
-              console.log('[Service Worker] Not found in cache:', event.request.url);
-              // Optional: Return a custom offline fallback page/response here if needed
-            }
-            return cachedResponse; // Returns the cached response or undefined if not found
+    // 1. Try to get the resource from the cache
+    caches.match(event.request)
+      .then(cachedResponse => {
+        // Return the cached response if found
+        if (cachedResponse) {
+          console.log('[Service Worker] Serving from cache:', event.request.url);
+          return cachedResponse;
+        }
+
+        // 2. If not in cache, try to fetch from the network
+        console.log('[Service Worker] Not in cache, fetching from network:', event.request.url);
+        return fetch(event.request)
+          .then(networkResponse => {
+            // Optional: Cache the fetched response for future offline use
+            // Be careful with caching dynamic responses or large files
+            // let responseToCache = networkResponse.clone();
+            // caches.open(CACHE_NAME).then(cache => {
+            //   cache.put(event.request, responseToCache);
+            // });
+            return networkResponse;
+          })
+          .catch(error => {
+            // Handle network errors (e.g., offline and not in cache)
+            console.error('[Service Worker] Fetch failed (offline and not in cache?):', error);
+            // Optional: Return a custom offline fallback page/response here
+            // return new Response("You are offline and this content isn't cached.", { status: 503, statusText: "Service Unavailable" });
           });
       })
   );
